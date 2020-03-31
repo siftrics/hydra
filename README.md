@@ -1,7 +1,7 @@
 This repository contains
 
-- A command-line tool to recognize text in documents.
-- The official Go client for the [Hydra API](https://siftrics.com/). [GoDoc here](https://godoc.org/github.com/siftrics/hydra).
+- A command-line tool for the [Hydra API](https://siftrics.com/).
+- The official Go client for the Hydra API. GoDoc [here](https://godoc.org/github.com/siftrics/hydra).
 
 ## [Command-line Quickstart](#command-line-quickstart)
 
