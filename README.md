@@ -29,6 +29,39 @@ Go to [https://siftrics.com/](https://siftrics.com/), sign up for an account, cr
 
 Here's the [GoDoc page](https://godoc.org/github.com/siftrics/hydra).
 
+### Complete Example
+
+```
+import "github.com/siftrics/hydra"
+
+...
+
+filePaths := []string{"file1.png", "file2.png"}
+
+client := hydra.NewClient(apiKey)
+filesChan, err := client.Recognize("my-data-source-id", filePaths...)
+if err != nil {
+    fmt.Fprintf(os.Stderr, "error: %v\n", err)
+    os.Exit(1)
+}
+for {
+    recognizedFile, isOpen := <- filesChan
+    if !isOpen {
+        break
+    }
+    filePath := filePaths[recognizedFile.FileIndex]
+    if recognizedFile.Error != "" {
+        fmt.Fprintf(os.Stderr, "Error processing file '%v'\n", filePath)
+        continue
+    }
+    for label, recognizedText := range recognizedFile.RecognizedText {
+        fmt.Printf("File '%v', Label '%v': '%v'\n", filePath, lable, recognizedText)
+    }
+}
+```
+
+### Step-by-Step Guide
+
 Import this repository:
 
 ```
@@ -82,30 +115,7 @@ type RecognizedFile struct {
 
 If `Error` is not an empty string, then there was an error processing the file in question. Otherwise, there were no errors processing the file in question.
 
-The keys of `RecognizedText` are the labels you wrote when creating the data source. You can loop through all of them with `range`:
-
-```
-filePaths := []string{"file1.png", "file2.png"}
-
-filesChan, err := client.Recognize(myDataSourceId, filePaths...)
-if err != nil {
-    log.Fatal(err)
-}
-for {
-    recognizedFile, isOpen := <- filesChan
-    if !isOpen {
-        break
-    }
-    filePath := filePaths[recognizedFile.FileIndex]
-    if recognizedFile.Error != "" {
-        fmt.Fprintf(os.Stderr, "Error processing file '%v'\n", filePath)
-        continue
-    }
-    for label, recognizedText := range recognizedFile.RecognizedText {
-        fmt.Printf("File '%v', Label '%v': '%v'\n", filePath, lable, recognizedText)
-    }
-}
-```
+The keys of `RecognizedText` are the labels you wrote when creating the data source. You can loop through all of them with `range`.
 
 ## Cost and Capabilities
 
