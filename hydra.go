@@ -51,8 +51,68 @@ type HydraRequestFile struct {
 type RecognizedFile struct {
 	Error          string
 	FileIndex      int
-	RecognizedText map[string]string
+	RecognizedText map[string]interface{}
 	Base64Image    string `json:",omitempty"`
+}
+
+// Get retrieves the string value associated to the given field.
+// If no such field is associated to the given data source,
+// or if the field is a table, as opposed to a string, then err != nil.
+// The returned string may be an empty string even when err == nil.
+func (rf *RecognizedFile) Get(field string) (string, error) {
+	v, ok := rf.RecognizedText[field]
+	if !ok {
+		fields := make([]string, len(rf.RecognizedText), len(rf.RecognizedText))
+		i := 0
+		for k, _ := range rf.RecognizedText {
+			fields[i] = k
+			i++
+		}
+		return "", fmt.Errorf("No such field \"%v\" associated to the given data source. Valid fields: %v", field, fields)
+	}
+	s, ok := v.(string)
+	if !ok {
+		return "", fmt.Errorf("The field \"%v\" is a table, not a string. Consider using the \"GetTable\" method.", field)
+	}
+	return s, nil
+}
+
+// GetTable retrieves the table associated to the given field.
+// If no such field is associated to the given data source,
+// or if the field is a string, as opposed to a table, then err != nil.
+// The returned table may be empty even when err == nil.
+func (rf *RecognizedFile) GetTable(field string) ([]map[string]string, error) {
+	v, ok := rf.RecognizedText[field]
+	if !ok {
+		fields := make([]string, len(rf.RecognizedText), len(rf.RecognizedText))
+		i := 0
+		for k, _ := range rf.RecognizedText {
+			fields[i] = k
+			i++
+		}
+		return nil, fmt.Errorf("No such field \"%v\" associated to the given data source. Valid fields: %v", field, fields)
+	}
+	interfaces, ok := v.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("The field \"%v\" is a string, not a table. Consider using the \"Get\" method.", field)
+	}
+	t := make([]map[string]string, len(interfaces), len(interfaces))
+	for i, inter := range interfaces {
+		mInter, ok := inter.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("This should never happen. Expected type map[string]interface{}. Got: %T\n", inter)
+		}
+		m := make(map[string]string)
+		for k, sInter := range mInter {
+			s, ok := sInter.(string)
+			if !ok {
+				return nil, fmt.Errorf("This should never happen. Expected type string. Got: %T\n", sInter)
+			}
+			m[k] = s
+		}
+		t[i] = m
+	}
+	return t, nil
 }
 
 type RecognizedFiles struct {
@@ -143,7 +203,9 @@ func (c *Client) RecognizeCfg(cfg Config, dataSourceId string, filePaths ...stri
 		return nil, err
 	}
 	if resp.StatusCode == 401 {
-		return nil, fmt.Errorf("Invalid API key; Received 401 Unauthorzied from initial HTTP request to the Hydra API.\n")
+		return nil, fmt.Errorf("Invalid API key; Received 401 Unauthorized from initial HTTP request to the Hydra API.\n")
+	} else if resp.StatusCode == 404 {
+		return nil, fmt.Errorf("Received 404 Not Found --- Invalid data source ID. (Note that the name of the data source is NOT necessarily the ID of the data source. The ID of the data source is listed on its page on siftrics.com. Spaces are usually replaced by hyphens.)\n")
 	} else if resp.StatusCode != 200 {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {

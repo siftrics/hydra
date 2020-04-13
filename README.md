@@ -54,8 +54,24 @@ for {
         fmt.Fprintf(os.Stderr, "Error processing file '%v'\n", filePath)
         continue
     }
-    for label, recognizedText := range recognizedFile.RecognizedText {
-        fmt.Printf("File '%v', Label '%v': '%v'\n", filePath, lable, recognizedText)
+    for label, value := range recognizedFile.RecognizedText {
+        str, ok := value.(string)
+        if ok {
+            fmt.Printf("File '%v', Label '%v': '%v'\n", filePath, label, str)
+        } else {
+            // This label is not a string, so it must be a table.
+            table, err := rf.GetTable(label)
+            if err != nil {
+                fmt.Fprintf(os.Stderr, "error processing field '%v': %v\n", label, err)
+                continue
+            }
+            fmt.Printf("File '%v', Label '%v':\n", filePath, label)
+            for rowIndex, row := range table {
+                for columnName, columnValue := range row {
+                    fmt.Printf("\tRow %v '%v': '%v'\n", rowIndex, columnName, columnValue)
+                }
+            }
+        }
     }
 }
 ```
@@ -107,7 +123,7 @@ The results from `filesChan` are this type:
 type RecognizedFile struct {
 	Error               string
 	FileIndex           int
-	RecognizedText      map[string]string
+	RecognizedText      map[string]interface{}
 }
 ```
 
@@ -115,7 +131,30 @@ type RecognizedFile struct {
 
 If `Error` is not an empty string, then there was an error processing the file in question. Otherwise, there were no errors processing the file in question.
 
-The keys of `RecognizedText` are the labels you wrote when creating the data source. You can loop through all of them with `range`.
+
+### Processing Recognized Text
+
+```
+    for label, value := range recognizedFile.RecognizedText {
+        str, ok := value.(string)
+        if ok {
+            fmt.Printf("Label '%v': '%v'\n", label, str)
+        } else {
+            // This label is not a string, so it must be a table.
+            table, err := rf.GetTable(label)
+            if err != nil {
+                fmt.Fprintf(os.Stderr, "error processing field '%v': %v\n", label, err)
+                continue
+            }
+            fmt.Printf("Label '%v':\n", label)
+            for rowIndex, row := range table {
+                for columnName, columnValue := range row {
+                    fmt.Printf("\tRow %v '%v': '%v'\n", rowIndex, columnName, columnValue)
+                }
+            }
+        }
+    }
+```
 
 ## Cost and Capabilities
 
