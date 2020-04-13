@@ -134,27 +134,26 @@ If `Error` is not an empty string, then there was an error processing the file i
 
 ### Processing Recognized Text
 
-```
-    for label, value := range recognizedFile.RecognizedText {
-        str, ok := value.(string)
-        if ok {
-            fmt.Printf("Label '%v': '%v'\n", label, str)
-        } else {
-            // This label is not a string, so it must be a table.
-            table, err := rf.GetTable(label)
-            if err != nil {
-                fmt.Fprintf(os.Stderr, "error processing field '%v': %v\n", label, err)
-                continue
-            }
-            fmt.Printf("Label '%v':\n", label)
-            for rowIndex, row := range table {
-                for columnName, columnValue := range row {
-                    fmt.Printf("\tRow %v '%v': '%v'\n", rowIndex, columnName, columnValue)
-                }
-            }
-        }
-    }
-```
+When a user creates a data source, they draw bounding boxes on a document and label each bounding box. Each bounding box could represent one of three things:
+
+1. a string
+2. a table
+3. an image
+
+Strings and images are both represented by the `string` type in Go. Images are base64-encoded PNG images.
+
+Tables are represented by the `[]map[string]string` type in Go. That is a slice of `map[string]string` objects.
+
+These are the underlying types of each `interface{}` in the `RecognizedText map[string]interface{}` field of a `RecognizedFile` object.
+
+To make it easier for users to cast from `interface{}` to `[]map[string]string` and `string`, two struct methods have been provided:
+
+1. `func (rf *RecognizedFile) Get(field string) (string, error)`
+2. `func (rf *RecognizedFile) GetTable(field string) ([]map[string]string, error)`
+
+The "Complete Example" above demonstrates how to use these functions.
+
+See the [GoDoc page](https://godoc.org/github.com/siftrics/hydra) for complete documentation.
 
 ## Cost and Capabilities
 
