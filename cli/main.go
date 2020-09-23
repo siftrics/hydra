@@ -26,6 +26,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -50,9 +51,11 @@ examples:
  ./hydra -d my-data-source invoice.pdf receipt.png --api-key-file my_api_key.txt
 
 optional flags:
- [-o|--output-file]  output file path
- [-f|--do-faster]    process files in half the time at the risk of inaccurate results.
-                      --do-faster typically succeeds when files are rotated less than 90 degrees.
+ [-o|--output-file]          output file path.
+ [-f|--do-faster]            process files in half the time at the risk of inaccurate results.
+                             --do-faster typically succeeds when files are rotated less than 90 degrees.
+ [-j|--return-jpgs]          if data source returns cropped images, return in JPG format (PNG format is default).
+ [-q|--jpg-quality <1-100>]  JPG quality. Number between 1 and 100 inclusive. Default 85.
 `)
 		os.Exit(1)
 	}
@@ -132,16 +135,51 @@ Run ./hydra -h for more help.
 			fallthrough
 		case "--do-faster":
 			cfg.DoFaster = true
+		case "-j":
+			fallthrough
+		case "--return-jpgs":
+			cfg.ReturnJpgs = true
+		case "-q":
+			fallthrough
+		case "--jpg-quality":
+			if i+1 >= len(os.Args) {
+				fmt.Fprintf(os.Stderr, `error: -q (or --jpg-quality) was specified but no number between 1 and 100 inclusive came after it.
+--jpg-quality is supposed to be followed by a number between 1 and 100 inclusive.
+Run ./hydra -h for more help.
+`)
+				os.Exit(1)
+			}
+			if cfg.JpgQuality != 0 {
+				fmt.Fprintf(os.Stderr, `error: -j (or --jpg-quality) was specified twice but it should only be specified once.
+Run ./hydra -h for more help.
+`)
+				os.Exit(1)
+			}
+			jpgQuality, err := strconv.Atoi(os.Args[i+1])
+			if err != nil || jpgQuality < 1 || jpgQuality > 100 {
+				fmt.Fprintf(os.Stderr, `error: --jpg-quality is supposed to be followed by a number between 1 and 100 inclusive.
+Run ./hydra -h for more help.
+`)
+				os.Exit(1)
+			}
+			cfg.JpgQuality = jpgQuality
 		default:
 			if !(os.Args[i-1] == "--api-key-file" ||
 				os.Args[i-1] == "-o" || os.Args[i-1] == "--output" ||
-				os.Args[i-1] == "-d" || os.Args[i-1] == "--data-source-id") {
+				os.Args[i-1] == "-d" || os.Args[i-1] == "--data-source-id" ||
+				os.Args[i-1] == "-q" || os.Args[i-1] == "--jpg-quality") {
 				inputFiles = append(inputFiles, s)
 			}
 		}
 	}
 	if dataSourceId == "" {
 		fmt.Fprintf(os.Stderr, `error: You must specify --data-source-id (you can use -d for shorthand).
+Run ./sight -h for more help.
+`)
+		os.Exit(1)
+	}
+	if cfg.JpgQuality != 0 && !cfg.ReturnJpgs {
+		fmt.Fprintf(os.Stderr, `error: You must specify --return-jpgs (-j) if you use --jpg-quality (-q).
 Run ./sight -h for more help.
 `)
 		os.Exit(1)

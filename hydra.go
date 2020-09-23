@@ -35,12 +35,16 @@ import (
 // the number of parameters will grow unwieldy. This allows RecognizeCfg
 // interface to remain readable (few parameters) and unchanged over time.
 type Config struct {
-	DoFaster bool
+	DoFaster   bool
+	ReturnJpgs bool
+	JpgQuality int
 }
 
 type HydraRequest struct {
-	Files    []HydraRequestFile `json:"files"`
-	DoFaster bool
+	Files      []HydraRequestFile `json:"files"`
+	DoFaster   bool
+	ReturnJpgs bool
+	JpgQuality int
 }
 
 type HydraRequestFile struct {
@@ -131,7 +135,8 @@ func NewClient(apiKey string) *Client {
 func (c *Client) Recognize(dataSourceId string, filePaths ...string) (<-chan RecognizedFile, error) {
 	return c.RecognizeCfg(
 		Config{
-			DoFaster: false,
+			DoFaster:   false,
+			ReturnJpgs: false,
 		},
 		dataSourceId,
 		filePaths...,
@@ -152,8 +157,17 @@ func (c *Client) Recognize(dataSourceId string, filePaths ...string) (<-chan Rec
 // goroutine.
 func (c *Client) RecognizeCfg(cfg Config, dataSourceId string, filePaths ...string) (<-chan RecognizedFile, error) {
 	sr := HydraRequest{
-		Files:    make([]HydraRequestFile, len(filePaths), len(filePaths)),
-		DoFaster: cfg.DoFaster,
+		Files:      make([]HydraRequestFile, len(filePaths), len(filePaths)),
+		DoFaster:   cfg.DoFaster,
+		ReturnJpgs: cfg.ReturnJpgs,
+		JpgQuality: cfg.JpgQuality,
+	}
+	if sr.ReturnJpgs && (sr.JpgQuality < 1 || sr.JpgQuality > 100) {
+		if sr.JpgQuality == 0 {
+			sr.JpgQuality = 85
+		} else {
+			return nil, fmt.Errorf("Expected JpgQuality to be between 1 and 100 inclusive when \"ReturnJpgs\" is true. Got JpgQuality = %v.", cfg.JpgQuality)
+		}
 	}
 	for i, fp := range filePaths {
 		if len(fp) < 4 {
