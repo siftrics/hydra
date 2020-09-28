@@ -1,6 +1,6 @@
 This repository contains
 
-- A command-line tool for the [Hydra API](https://siftrics.com/).
+- A command-line tool for the [Hydra API](https://siftrics.com/docs/hydra.html).
 - The official Go client for the Hydra API. GoDoc [here](https://godoc.org/github.com/siftrics/hydra).
 
 ## [Command-line Quickstart](#command-line-quickstart)
