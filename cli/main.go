@@ -51,17 +51,28 @@ examples:
  ./hydra -d my-data-source invoice.pdf receipt.png --api-key-file my_api_key.txt
 
 optional flags:
- [-o|--output-file]          output file path.
- [-f|--do-faster]            process files in half the time at the risk of inaccurate results.
-                             --do-faster typically succeeds when files are rotated less than 90 degrees.
- [-j|--return-jpgs]          if data source returns cropped images, return in JPG format (PNG format is default).
- [-q|--jpg-quality <1-100>]  JPG quality. Number between 1 and 100 inclusive. Default 85.
+ [-o|--output-file]                output file path.
+
+ [-f|--do-faster]                  process files in half the time at the risk of 
+                                   inaccurate results. --do-faster typically succeeds
+                                   when files are rotated less than 90 degrees.
+
+ [-i|--return-transformed-images]  return input images transformed and aligned to the
+                                   original image used to create the data source.
+
+ [-j|--return-jpgs]                if data source returns cropped images, return in JPG
+                                   format (PNG format is default).
+
+ [-q|--jpg-quality <1-100>]        JPG quality. Number between 1 and 100 inclusive. 
+                                   Default 85.
 `)
 		os.Exit(1)
 	}
 
 	cfg := hydra.Config{
-		DoFaster: false,
+		DoFaster:                false,
+		ReturnTransformedImages: false,
+		ReturnJpgs:              false,
 	}
 	promptApiKey := false
 	apiKeyFile := ""
@@ -135,6 +146,10 @@ Run ./hydra -h for more help.
 			fallthrough
 		case "--do-faster":
 			cfg.DoFaster = true
+		case "-i":
+			fallthrough
+		case "--return-transformed-images":
+			cfg.ReturnTransformedImages = true
 		case "-j":
 			fallthrough
 		case "--return-jpgs":

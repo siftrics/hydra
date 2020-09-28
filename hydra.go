@@ -35,16 +35,18 @@ import (
 // the number of parameters will grow unwieldy. This allows RecognizeCfg
 // interface to remain readable (few parameters) and unchanged over time.
 type Config struct {
-	DoFaster   bool
-	ReturnJpgs bool
-	JpgQuality int
+	DoFaster                bool
+	ReturnTransformedImages bool
+	ReturnJpgs              bool
+	JpgQuality              int
 }
 
 type HydraRequest struct {
-	Files      []HydraRequestFile `json:"files"`
-	DoFaster   bool
-	ReturnJpgs bool
-	JpgQuality int
+	Files                   []HydraRequestFile `json:"files"`
+	DoFaster                bool
+	ReturnTransformedImages bool
+	ReturnJpgs              bool
+	JpgQuality              int
 }
 
 type HydraRequestFile struct {
@@ -53,10 +55,15 @@ type HydraRequestFile struct {
 }
 
 type RecognizedFile struct {
-	Error          string
-	FileIndex      int
-	RecognizedText map[string]interface{}
-	Base64Image    string `json:",omitempty"`
+	Error             string
+	FileIndex         int
+	RecognizedText    map[string]interface{}
+	TransformedImages []TransformedImage
+}
+
+type TransformedImage struct {
+	Base64Image string
+	PageNumber  int
 }
 
 // Get retrieves the string value associated to the given field.
@@ -135,8 +142,9 @@ func NewClient(apiKey string) *Client {
 func (c *Client) Recognize(dataSourceId string, filePaths ...string) (<-chan RecognizedFile, error) {
 	return c.RecognizeCfg(
 		Config{
-			DoFaster:   false,
-			ReturnJpgs: false,
+			DoFaster:                false,
+			ReturnTransformedImages: false,
+			ReturnJpgs:              false,
 		},
 		dataSourceId,
 		filePaths...,
@@ -157,10 +165,11 @@ func (c *Client) Recognize(dataSourceId string, filePaths ...string) (<-chan Rec
 // goroutine.
 func (c *Client) RecognizeCfg(cfg Config, dataSourceId string, filePaths ...string) (<-chan RecognizedFile, error) {
 	sr := HydraRequest{
-		Files:      make([]HydraRequestFile, len(filePaths), len(filePaths)),
-		DoFaster:   cfg.DoFaster,
-		ReturnJpgs: cfg.ReturnJpgs,
-		JpgQuality: cfg.JpgQuality,
+		Files:                   make([]HydraRequestFile, len(filePaths), len(filePaths)),
+		DoFaster:                cfg.DoFaster,
+		ReturnTransformedImages: cfg.ReturnTransformedImages,
+		ReturnJpgs:              cfg.ReturnJpgs,
+		JpgQuality:              cfg.JpgQuality,
 	}
 	if sr.ReturnJpgs && (sr.JpgQuality < 1 || sr.JpgQuality > 100) {
 		if sr.JpgQuality == 0 {
