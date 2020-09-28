@@ -1,0 +1,12 @@
+#!/bin/bash
+set -eo pipefail
+set -x
+
+env GOOS=linux GOARCH=amd64 go build -trimpath -o hydra-linux-amd64
+gzip -k hydra-linux-amd64
+
+env GOOS=windows GOARCH=amd64 go build -trimpath -o hydra-windows-amd64
+zip hydra-windows-amd64.zip hydra-windows-amd64
+
+env GOOS=darwin GOARCH=amd64 go build -trimpath -o hydra-darwin-amd64
+zip hydra-darwin-amd64.zip hydra-darwin-amd64
